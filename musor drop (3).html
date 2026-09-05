@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MUSOR DROP — БОЛЬШЕ ХЛАМА, МЕНЬШЕ СКИНОВ!</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js">
+    </script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#0d0b14',
+                            card: '#161224',
+                            cardHover: '#1f1933',
+                            purple: '#7c3aed',
+                            purpleHover: '#6d28d9',
+                            darkPurple: '#2d1454',
+                            accentGreen: '#10b981',
+                            accentGreenHover: '#059669',
+                            gold: '#f59e0b',
+                            trashBrown: '#78350f'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0d0b14;
+            color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .banner-gradient {
+            background: linear-gradient(135deg, #180f2d 0%, #2e125e 50%, #120b22 100%);
+            box-shadow: 0 0 50px rgba(124, 58, 237, 0.2);
+        }
+
+        .rarity-trash {
+            border-color: #52525b;
+            background: linear-gradient(180deg, rgba(39, 39, 42, 0.8) 0%, rgba(18, 18, 20, 0.95) 100%);
+        }
+        .rarity-uncommon {
+            border-color: #3b82f6;
+            background: linear-gradient(180deg, rgba(59, 130, 246, 0.2) 0%, rgba(15, 23, 42, 0.95) 100%);
+        }
+        .rarity-classified {
+            border-color: #d946ef;
+            background: linear-gradient(180deg, rgba(217, 70, 239, 0.2) 0%, rgba(30, 10, 40, 0.95) 100%);
+        }
+        .rarity-legendary {
+            border-color: #f59e0b;
+            background: linear-gradient(180deg, rgba(245, 158, 11, 0.3) 0%, rgba(45, 26, 0, 0.95) 100%);
+        }
+
+        .rarity-glow-legendary {
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.5);
+            animation: pulseGlow 2s infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+            100% { box-shadow: 0 0 30px rgba(245, 158, 11, 0.8); }
+        }
+
+        .ticker-container {
+            display: flex;
+            gap: 0.75rem;
+            overflow-x: hidden;
+            white-space: nowrap;
+            mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+        }
+
+        .roulette-container {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            height: 190px;
+            background: #080611;
+            border: 2px solid #2d2447;
+            border-radius: 1.25rem;
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.95);
+        }
+
+        .roulette-track {
+            display: flex;
+            position: absolute;
+            left: 0;
+            top: 15px;
+            will-change: transform;
+            transition: transform 6.5s cubic-bezier(0.08, 0.82, 0.17, 0.99);
+        }
+
+        .roulette-item {
+            flex-shrink: 0;
+            width: 140px;
+            height: 160px;
+            margin: 0 5px;
+            border-radius: 0.85rem;
+            border-bottom: 4px solid;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem;
+            background: #151026;
+            position: relative;
+        }
+
+        .roulette-pointer {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            background: #ef4444;
+            z-index: 20;
+            box-shadow: 0 0 15px #ef4444, 0 0 30px #f87171;
+        }
+
+        .roulette-pointer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 14px solid #ef4444;
+        }
+
+        .roulette-pointer::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 14px solid #ef4444;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0d0b14; }
+        ::-webkit-scrollbar-thumb { background: #2d2447; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #7c3aed; }
+
+        .toast-notification {
+            position: fixed;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            background: #1f0f0f;
+            border: 2px solid #ef4444;
+            color: #fca5a5;
+            padding: 12px 28px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 14px;
+            box-shadow: 0 10px 40px rgba(239, 68, 68, 0.3);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            backdrop-filter: blur(12px);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .toast-notification i {
+            font-size: 20px;
+            color: #ef4444;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .trade-offer-item {
+            background: #0e0a17;
+            border: 1px solid #2a2042;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .trade-offer-item:hover {
+            border-color: #7c3aed;
+            transform: scale(1.05);
+            background: #1a142c;
+        }
+
+        .trade-offer-item.selected {
+            border-color: #10b981;
+            background: #0f1f17;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+        }
+
+        .clicker-coin {
+            position: fixed;
+            pointer-events: none;
+            font-size: 24px;
+            z-index: 9998;
+            animation: floatCoin 1.2s ease-out forwards;
+        }
+
+        @keyframes floatCoin {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-120px) scale(1.5);
+            }
+        }
+
+        .clicker-button {
+            transition: all 0.08s ease;
+        }
+
+        .clicker-button:active {
+            transform: scale(0.92);
+        }
+
+        .clicker-pulse {
+            animation: clickerPulse 0.15s ease;
+        }
+
+        @keyframes clickerPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); box-shadow: 0 0 60px rgba(245, 158, 11, 0.6); }
+            100% { transform: scale(1); }
+        }
+
+        .upgrade-card {
+            background: #0e0a17;
+            border: 1px solid #1b152b;
+            border-radius: 12px;
+            padding: 12px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .upgrade-card:hover {
+            border-color: #7c3aed;
+            background: #16122a;
+        }
+
+        .upgrade-card.unlocked {
+            border-color: #10b981;
+            background: #0a1a12;
+        }
+
+        .upgrade-card.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <div id="insufficientToast" class="toast-notification">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="toastMessage">Недостаточно средств для открытия кейса!</span>
+    </div>
+
+    <header class="w-full bg-[#0d0b14]/95 backdrop-blur-md border-b border-[#211a33] sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+
+            <div class="flex items-center gap-8">
+                <div class="flex items-center gap-2 cursor-pointer" onclick="switchTab('cases')">
+                    <div class="w-10 h-10 rounded-xl bg-brand-purple flex items-center justify-center text-white shadow-lg shadow-purple-900/50">
+                        <i class="fa-solid fa-recycle text-xl animate-spin-slow"></i>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-xl sm:text-2xl font-black tracking-wider uppercase text-white font-sans leading-none">
+                            MUSOR<span class="text-brand-purple">DROP</span>
+                        </span>
+                        <span class="text-[9px] text-amber-400 font-extrabold tracking-widest uppercase">100% ХЛАМА, 0% СКИНОВ</span>
+                    </div>
+                </div>
+
+                <nav class="hidden md:flex items-center gap-6 text-sm font-semibold text-gray-300">
+                    <button onclick="switchTab('cases')" id="nav-cases" class="flex items-center gap-2 text-white hover:text-brand-purple transition-colors">
+                        <i class="fa-solid fa-box-open text-xs text-brand-purple"></i> Кейсы
+                    </button>
+                    <button onclick="switchTab('inventory')" id="nav-inventory" class="flex items-center gap-2 hover:text-white transition-colors">
+                        <i class="fa-solid fa-dumpster text-xs text-amber-400"></i> Моя Свалка (<span id="navInvCount">0</span>)
+                    </button>
+                    <button onclick="openTradeModal()" class="flex items-center gap-2 hover:text-emerald-400 transition-colors">
+                        <i class="fa-solid fa-arrows-rotate text-xs text-emerald-400"></i> Трейды
+                    </button>
+                    <button onclick="switchTab('clicker')" id="nav-clicker" class="flex items-center gap-2 hover:text-amber-400 transition-colors">
+                        <i class="fa-solid fa-hand-fist text-xs text-amber-400"></i> Кликер
+                    </button>
+                </nav>
+            </div>
+
+            <div class="flex items-center gap-3 sm:gap-4">
+                <div class="bg-[#10291f] border border-[#10b981]/50 rounded-xl px-3.5 py-1.5 flex items-center gap-2 shadow-sm">
+                    <div class="w-2.5 h-2.5 rounded-full bg-brand-accentGreen animate-pulse"></div>
+                    <span class="text-sm font-black text-brand-accentGreen" id="userBalance">0 ₽</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-[#08060f] py-2 border-t border-b border-[#1b152b] overflow-hidden relative">
+            <div id="liveTicker" class="ticker-container px-4"></div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-grow w-full space-y-8">
+
+        <section id="tab-cases" class="space-y-8">
+
+            <div class="relative rounded-3xl overflow-hidden banner-gradient border border-[#3d2b63] p-6 sm:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="space-y-4 max-w-lg z-10 text-center md:text-left">
+                    <div class="inline-block px-3 py-1 bg-amber-500/20 border border-amber-500/40 rounded-full text-amber-400 text-xs font-black tracking-widest uppercase">
+                        Главная помойка страны
+                    </div>
+                    <h1 class="text-3xl sm:text-5xl font-black text-white leading-tight uppercase">
+                        БОЛЬШЕ ХЛАМА, <br>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-amber-300">
+                            МЕНЬШЕ СКИНОВ!
+                        </span>
+                    </h1>
+                    <p class="text-gray-300 text-xs sm:text-sm leading-relaxed">
+                        Кейсы CS2 с гарантированной подкруткой! Ножи и AWP Dragon Lore светятся в рулетке для приманки, но вы <b>гарантированно выбьете гнилой банан, носок или рыбий скелет!</b>
+                    </p>
+                    <div class="pt-2 flex justify-center md:justify-start gap-3">
+                        <button onclick="scrollToCases()" class="px-8 py-3.5 bg-brand-purple hover:bg-brand-purpleHover text-white font-black text-sm rounded-xl uppercase tracking-wider transition-all shadow-lg shadow-purple-900/60 transform hover:scale-105 active:scale-95">
+                            Открыть мусорку
+                        </button>
+                    </div>
+                </div>
+
+                <div class="relative z-10 w-64 h-52 sm:w-80 sm:h-64 flex items-center justify-center shrink-0">
+                    <div class="absolute inset-0 bg-brand-purple/25 blur-3xl rounded-full"></div>
+                    <div class="w-full h-full flex items-center justify-center drop-shadow-[0_15px_25px_rgba(0,0,0,0.9)] transform -rotate-6 hover:rotate-0 transition-transform duration-500">
+                        <svg viewBox="0 0 300 120" class="w-full h-auto">
+                            <path d="M 10 65 L 70 65 L 90 50 L 220 50 L 260 58 L 295 58 L 295 62 L 260 62 L 230 78 L 120 78 L 80 95 L 30 95 Z" fill="#1e1833" stroke="#f59e0b" stroke-width="2" />
+                            <rect x="110" y="32" width="60" height="12" rx="3" fill="#2d1d4c" stroke="#f59e0b" stroke-width="2.5" />
+                            <rect x="100" y="35" width="10" height="6" fill="#f59e0b" />
+                            <rect x="170" y="35" width="10" height="6" fill="#f59e0b" />
+                            <rect x="250" y="56" width="45" height="5" fill="#f59e0b" />
+                            <path d="M 110 52 Q 130 65 160 52 T 210 58" stroke="#ef4444" stroke-width="3" fill="none" />
+                            <path d="M 120 62 Q 140 75 180 62" stroke="#f59e0b" stroke-width="2" fill="none" />
+                            <g transform="translate(140, 15) rotate(15)">
+                                <path d="M 5 15 L 45 15 M 15 5 L 15 25 M 25 5 L 25 25 M 35 5 L 35 25" stroke="#fef08a" stroke-width="2" stroke-linecap="round" />
+                                <polygon points="45,15 55,5 55,25" fill="#fef08a" />
+                                <polygon points="5,15 0,10 0,20" fill="#fef08a" />
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div onclick="scrollToCases()" class="bg-[#141022] hover:bg-[#1a142c] border border-[#2b2142] hover:border-brand-purple p-4 rounded-2xl cursor-pointer transition-all flex items-center justify-between group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-purple-900/30 border border-purple-500/40 flex items-center justify-center text-brand-purple group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-dumpster-fire text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-white text-base tracking-wide uppercase">КЕЙСЫ С ХЛАМОМ</h3>
+                            <p class="text-xs text-gray-400">100% шанс на баночки и бананы</p>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-gray-500 group-hover:text-white transition-colors"></i>
+                </div>
+
+                <div onclick="openTradeModal()" class="bg-[#141022] hover:bg-[#1a142c] border border-[#2b2142] hover:border-emerald-500/50 p-4 rounded-2xl cursor-pointer transition-all flex items-center justify-between group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-900/30 border border-emerald-500/40 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-arrows-rotate text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-white text-base tracking-wide uppercase">ТРЕЙДЫ С БОТАМИ</h3>
+                            <p class="text-xs text-gray-400">Обменяй хлам на случайные вещи</p>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-gray-500 group-hover:text-white transition-colors"></i>
+                </div>
+            </div>
+
+            <div id="casesSection" class="space-y-4 pt-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-black text-white uppercase tracking-wider flex items-center gap-2">
+                        <span class="w-2.5 h-6 bg-brand-purple rounded-full"></span> Ежедневный Бесплатный Хлам
+                    </h2>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div onclick="openCaseModal('free')" class="group relative bg-[#151124] hover:bg-[#1c1730] border-2 border-brand-purple rounded-2xl p-4 cursor-pointer transition-all hover:-translate-y-1 shadow-lg shadow-purple-950/40">
+                        <div class="absolute top-3 right-3 bg-brand-purple text-white text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider">0 ₽</div>
+                        <div class="py-6 flex justify-center items-center">
+                            <div class="w-28 h-28 relative flex items-center justify-center">
+                                <i class="fa-solid fa-trash-arrow-up text-6xl text-brand-purple group-hover:scale-110 transition-transform"></i>
+                            </div>
+                        </div>
+                        <div class="space-y-1 text-center">
+                            <h3 class="font-extrabold text-white text-sm uppercase">БЕСПЛАТНЫЙ УТИЛЬ</h3>
+                            <p class="text-xs text-gray-400">Халявный ржавый гвоздь или носок</p>
+                        </div>
+                        <button class="w-full mt-4 py-2.5 bg-brand-purple hover:bg-brand-purpleHover text-white font-black rounded-xl text-xs uppercase transition-all shadow-md">
+                            Открыть бесплатно
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-black text-white uppercase tracking-wider flex items-center gap-2">
+                        <span class="w-2.5 h-6 bg-amber-500 rounded-full"></span> Платные Контейнеры Свалки
+                    </h2>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div onclick="openCaseModal('bomzh')" class="group relative bg-[#151124] hover:bg-[#1c1730] border border-[#28203b] hover:border-purple-500 rounded-2xl p-4 cursor-pointer transition-all hover:-translate-y-1">
+                        <div class="py-6 flex justify-center items-center">
+                            <i class="fa-solid fa-trash text-5xl text-gray-400 group-hover:text-purple-400 transition-colors"></i>
+                        </div>
+                        <div class="space-y-1 text-center">
+                            <h3 class="font-bold text-white text-sm uppercase">КЕЙС "БОМЖ"</h3>
+                            <p class="text-xs text-gray-400">Огрызки и дырявые носки</p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-[#231c33] flex items-center justify-between">
+                            <span class="text-xs text-gray-500">Цена:</span>
+                            <span class="text-sm font-black text-brand-accentGreen">49 ₽</span>
+                        </div>
+                    </div>
+
+                    <div onclick="openCaseModal('podezd')" class="group relative bg-[#151124] hover:bg-[#1c1730] border border-[#28203b] hover:border-purple-500 rounded-2xl p-4 cursor-pointer transition-all hover:-translate-y-1">
+                        <div class="py-6 flex justify-center items-center">
+                            <i class="fa-solid fa-dumpster-fire text-5xl text-amber-500 group-hover:scale-110 transition-transform"></i>
+                        </div>
+                        <div class="space-y-1 text-center">
+                            <h3 class="font-bold text-white text-sm uppercase">КЕЙС "ПОДЪЕЗД"</h3>
+                            <p class="text-xs text-gray-400">Гнилой банан и гнутые вилки</p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-[#231c33] flex items-center justify-between">
+                            <span class="text-xs text-gray-500">Цена:</span>
+                            <span class="text-sm font-black text-brand-accentGreen">149 ₽</span>
+                        </div>
+                    </div>
+
+                    <div onclick="openCaseModal('gold_fake')" class="group relative bg-[#151124] hover:bg-[#1c1730] border border-[#28203b] hover:border-amber-500/60 rounded-2xl p-4 cursor-pointer transition-all hover:-translate-y-1">
+                        <div class="py-6 flex justify-center items-center">
+                            <div class="w-20 h-16 flex items-center justify-center">
+                                <i class="fa-solid fa-gem text-5xl text-amber-400 group-hover:scale-110 transition-transform"></i>
+                            </div>
+                        </div>
+                        <div class="space-y-1 text-center">
+                            <h3 class="font-bold text-amber-400 text-sm uppercase">МЕЧТА "KARAMBIT LORE"</h3>
+                            <p class="text-xs text-gray-400">Шанс на керамбит: <span class="text-red-500 font-bold">0.00%</span></p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-[#231c33] flex items-center justify-between">
+                            <span class="text-xs text-gray-500">Цена:</span>
+                            <span class="text-sm font-black text-brand-accentGreen">499 ₽</span>
+                        </div>
+                    </div>
+
+                    <div onclick="openCaseModal('oligarh')" class="group relative bg-[#151124] hover:bg-[#1c1730] border border-amber-500/40 hover:border-amber-500 rounded-2xl p-4 cursor-pointer transition-all hover:-translate-y-1">
+                        <div class="py-6 flex justify-center items-center">
+                            <div class="w-20 h-16 flex items-center justify-center">
+                                <i class="fa-solid fa-crown text-5xl text-amber-400 group-hover:scale-110 transition-transform"></i>
+                            </div>
+                        </div>
+                        <div class="space-y-1 text-center">
+                            <h3 class="font-bold text-amber-400 text-sm uppercase">АРСЕНАЛ ОГНЕЙ</h3>
+                            <p class="text-xs text-gray-400">Виден AWP Dragon, выпадет пакет</p>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-[#231c33] flex items-center justify-between">
+                            <span class="text-xs text-gray-500">Цена:</span>
+                            <span class="text-sm font-black text-brand-accentGreen">999 ₽</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4 pt-4">
+                <h2 class="text-xl font-black text-white uppercase tracking-wider flex items-center gap-2">
+                    <span class="w-2.5 h-6 bg-blue-500 rounded-full"></span> Ассортимент Мусора на Свалке
+                </h2>
+                <div id="showcaseGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3"></div>
+            </div>
+        </section>
+
+        <section id="tab-inventory" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#141021] p-6 rounded-2xl border border-[#28203b]">
+                <div>
+                    <h2 class="text-2xl font-black text-white uppercase">Моя Свалка Хлама</h2>
+                    <p class="text-xs text-gray-400">Все накопленные бананы, носки и гвозди хранятся здесь</p>
+                </div>
+                <button onclick="sellAllInventory()" class="px-5 py-2.5 bg-brand-accentGreen hover:bg-brand-accentGreenHover text-gray-950 font-black rounded-xl text-xs uppercase transition-all shadow-md">
+                    Сдать всё в утиль <span id="sellAllPrice">(0 ₽)</span>
+                </button>
+            </div>
+            <div id="inventoryGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3"></div>
+        </section>
+
+        <section id="tab-clicker" class="hidden space-y-8">
+            <div class="text-center space-y-4">
+                <h2 class="text-3xl font-black text-white uppercase tracking-wider flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-hand-fist text-amber-400"></i>
+                    МУСОРНЫЙ КЛИКЕР
+                </h2>
+                <p class="text-gray-400 text-sm">Кликай по банке, зарабатывай деньги и прокачивай свой доход!</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-[#141021] border border-[#28203b] rounded-3xl p-8 flex flex-col items-center justify-center space-y-6">
+                    <div class="text-center">
+                        <div class="text-4xl font-black text-brand-accentGreen" id="clickerCoins">0 ₽</div>
+                        <div class="text-sm text-gray-400 mt-1">заработано кликами</div>
+                    </div>
+
+                    <div class="relative">
+                        <div id="clickerButton" class="w-48 h-48 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-6xl shadow-2xl shadow-amber-900/50 cursor-pointer clicker-button border-4 border-amber-300 hover:shadow-amber-500/30 transition-all duration-200">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </div>
+                        <div class="absolute -top-2 -right-2 bg-purple-600 text-white text-xs font-black px-3 py-1 rounded-full border border-purple-400 shadow-lg">
+                            +<span id="clickerPerClick">1</span> ₽
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 flex-wrap justify-center">
+                        <div class="bg-[#0c0914] border border-[#1b152b] rounded-xl px-4 py-2 text-center">
+                            <div class="text-xs text-gray-400">Кликов</div>
+                            <div class="text-lg font-black text-white" id="clickerTotalClicks">0</div>
+                        </div>
+                        <div class="bg-[#0c0914] border border-[#1b152b] rounded-xl px-4 py-2 text-center">
+                            <div class="text-xs text-gray-400">Доход/сек</div>
+                            <div class="text-lg font-black text-amber-400" id="clickerIncome">0 ₽</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-[#141021] border border-[#28203b] rounded-3xl p-6">
+                    <h3 class="text-sm font-bold text-white uppercase mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-up text-amber-400"></i>
+                        Улучшения
+                    </h3>
+                    <div class="space-y-3" id="upgradesContainer"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ROULETTE / CASE OPENING MODAL -->
+    <div id="caseModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#141021] border border-[#2f2547] rounded-3xl w-full max-w-3xl p-6 relative shadow-2xl space-y-6">
+            <button onclick="closeCaseModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-[#1e1730] flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="text-center space-y-1">
+                <h3 id="modalCaseTitle" class="text-2xl font-black text-white uppercase"></h3>
+                <p class="text-xs text-amber-400 font-bold">100% ПОДКТУТКА! Ножи в рулетке лишь для красоты.</p>
+            </div>
+            <div class="roulette-container">
+                <div class="roulette-pointer"></div>
+                <div id="rouletteTrack" class="roulette-track"></div>
+            </div>
+            <div class="flex flex-col items-center gap-2 pt-2">
+                <button id="spinBtn" onclick="startSpin()" class="px-8 py-3.5 bg-brand-purple hover:bg-brand-purpleHover text-white font-black text-lg rounded-xl uppercase tracking-wider shadow-lg shadow-purple-950/70 transition-all transform hover:scale-105 active:scale-95">
+                    Крутить (<span id="modalCasePrice">0 ₽</span>)
+                </button>
+                <span class="text-[10px] text-gray-400 font-bold">* Гарантия: выпадет 100% мусор</span>
+            </div>
+            <div class="pt-4 border-t border-[#231c33]">
+                <h4 class="text-xs font-bold uppercase text-gray-400 mb-3 text-center">Возможный хлам в кейсе:</h4>
+                <div id="caseContainsGrid" class="flex flex-wrap justify-center gap-2 max-h-32 overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WIN DIALOG MODAL -->
+    <div id="winModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#141021] border border-brand-purple rounded-3xl w-full max-w-sm p-6 text-center space-y-5 shadow-2xl">
+            <div>
+                <span class="text-[10px] font-black text-amber-400 uppercase tracking-widest">ВАШ ПОРАЗИТЕЛЬНЫЙ УТИЛЬ!</span>
+                <h3 id="winTitle" class="text-xl font-black text-white uppercase mt-1">---</h3>
+            </div>
+            <div id="winCard" class="bg-[#0c0914] border border-[#2a2042] rounded-2xl p-4 flex flex-col items-center justify-center space-y-2">
+                <div id="winImgContainer" class="w-32 h-28 flex items-center justify-center"></div>
+                <p id="winPrice" class="text-sm font-black text-brand-accentGreen">0 ₽</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button onclick="sellCurrentWin()" class="py-2.5 bg-[#201933] hover:bg-[#2a2242] text-gray-300 font-bold rounded-xl text-xs uppercase border border-[#352a52]">
+                    Сдать за <span id="winSellPrice">0 ₽</span>
+                </button>
+                <button onclick="keepCurrentWin()" class="py-2.5 bg-brand-purple hover:bg-brand-purpleHover text-white font-bold rounded-xl text-xs uppercase shadow-md shadow-purple-950/50">
+                    В карман
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRADE MODAL -->
+    <div id="tradeModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#141021] border border-emerald-500/40 rounded-3xl w-full max-w-4xl p-6 relative shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <button onclick="closeTradeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white w-8 h-8 rounded-full bg-[#1e1730] flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="text-center">
+                <h3 class="text-2xl font-black text-white uppercase flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-arrows-rotate text-emerald-400"></i>
+                    ТРЕЙДЫ С БОТАМИ
+                </h3>
+                <p class="text-xs text-gray-400">Выбери предмет из своего инвентаря для обмена на случайный предмет от бота</p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-dumpster text-amber-400"></i>
+                        Твой хлам (<span id="tradeInventoryCount">0</span>)
+                    </h4>
+                    <div id="tradeInventoryList" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-64 overflow-y-auto p-2 bg-[#0c0914] rounded-2xl border border-[#1b152b]"></div>
+                    <p id="tradeEmptyMessage" class="text-center text-gray-500 text-sm py-8">У тебя нет хлама для обмена! Открой кейсы чтобы получить мусор.</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-white uppercase mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-robot text-emerald-400"></i>
+                        Что даёт бот
+                    </h4>
+                    <div id="botOfferList" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-64 overflow-y-auto p-2 bg-[#0c0914] rounded-2xl border border-[#1b152b]"></div>
+                    <p id="botEmptyMessage" class="text-center text-gray-500 text-sm py-8">Выбери предмет для обмена, чтобы увидеть предложение бота</p>
+                </div>
+            </div>
+            <div class="flex justify-center pt-4 border-t border-[#1b152b]">
+                <button id="tradeExecuteBtn" onclick="executeTrade()" class="px-10 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg rounded-xl uppercase tracking-wider shadow-lg shadow-emerald-950/60 transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-arrows-rotate mr-2"></i>
+                    Обменять
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DEPOSIT MODAL -->
+    <div id="depositModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#141021] border border-[#2d2345] rounded-2xl w-full max-w-xs p-5 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-bold text-white text-base">Пополнить Баланс</h3>
+                <button onclick="closeDepositModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="addBalance(500)" class="py-2 bg-[#1d172e] hover:bg-[#28203f] font-bold text-brand-accentGreen rounded-xl text-xs border border-[#31274c]">+ 500 ₽</button>
+                <button onclick="addBalance(1000)" class="py-2 bg-[#1d172e] hover:bg-[#28203f] font-bold text-brand-accentGreen rounded-xl text-xs border border-[#31274c]">+ 1 000 ₽</button>
+                <button onclick="addBalance(5000)" class="py-2 bg-[#1d172e] hover:bg-[#28203f] font-bold text-brand-accentGreen rounded-xl text-xs border border-[#31274c]">+ 5 000 ₽</button>
+                <button onclick="addBalance(10000)" class="py-2 bg-[#1d172e] hover:bg-[#28203f] font-bold text-brand-accentGreen rounded-xl text-xs border border-[#31274c]">+ 10 000 ₽</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-[#07050b] border-t border-[#181326] py-6 mt-12 text-center text-xs text-gray-500">
+        <p>© 2026 MUSOR DROP. Все легендарные скины представлены исключительно для визуальной дразнилки и никогда не выпадают.</p>
+    </footer>
+
+    <script>
+        const SVG_ASSETS = {
+            sock: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 30 15 L 60 15 C 65 15 65 25 60 35 L 50 60 C 50 65 55 75 75 75 C 85 75 85 90 70 90 C 40 90 30 75 30 60 Z" fill="#65a30d" stroke="#3f6212" stroke-width="3"/><circle cx="42" cy="30" r="4" fill="#000" opacity="0.3"/><path d="M 30 20 Q 25 15 20 22" stroke="#a3e635" stroke-width="2" fill="none"/><path d="M 65 10 Q 70 5 65 0" stroke="#84cc16" stroke-width="2" fill="none"/><path d="M 75 15 Q 80 10 75 5" stroke="#84cc16" stroke-width="2" fill="none"/></svg>`,
+            banana: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 20 20 Q 80 10 85 70 Q 50 85 15 35 Z" fill="#ca8a04" stroke="#713f12" stroke-width="3"/><path d="M 20 20 Q 50 50 85 70" stroke="#451a03" stroke-width="2" stroke-dasharray="3,3" fill="none"/><circle cx="45" cy="40" r="5" fill="#451a03"/><circle cx="60" cy="55" r="4" fill="#451a03"/><circle cx="30" cy="28" r="3" fill="#451a03"/></svg>`,
+            fishbone: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 10 50 L 85 50 M 25 30 L 25 70 M 40 25 L 40 75 M 55 30 L 55 70 M 70 35 L 70 65" stroke="#e2e8f0" stroke-width="3" stroke-linecap="round"/><polygon points="85,50 98,35 98,65" fill="#cbd5e1"/><circle cx="92" cy="45" r="2" fill="#0f172a"/><polygon points="10,50 0,35 0,65" fill="#cbd5e1"/></svg>`,
+            shoe: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 15 55 Q 25 35 45 40 L 65 45 Q 85 45 90 65 L 85 78 L 10 78 Z" fill="#475569" stroke="#1e293b" stroke-width="3"/><rect x="10" y="73" width="80" height="9" rx="2" fill="#cbd5e1"/><ellipse cx="75" cy="58" rx="6" ry="4" fill="#0f172a"/></svg>`,
+            nail: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 20 25 L 80 20 L 75 30 L 55 32 L 35 85 L 25 82 L 45 32 L 20 25 Z" fill="#b45309" stroke="#78350f" stroke-width="2"/><path d="M 35 85 L 25 82 L 22 92 Z" fill="#451a03"/></svg>`,
+            bag: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 30 35 C 30 20, 45 20, 45 35 L 55 35 C 55 20, 70 20, 70 35 Q 85 45 80 85 Q 75 95 25 95 Q 15 45 30 35 Z" fill="#334155" opacity="0.9" stroke="#0f172a" stroke-width="3"/><circle cx="50" cy="35" r="6" fill="#1e293b"/></svg>`,
+            can: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 30 20 C 30 15, 70 15, 70 20 L 75 40 Q 80 55 65 65 Q 55 75 70 85 C 70 90, 30 90, 30 85 Q 20 60 35 45 Z" fill="#94a3b8" stroke="#334155" stroke-width="3"/><ellipse cx="50" cy="20" rx="20" ry="5" fill="#64748b"/><path d="M 38 40 Q 50 50 62 38" stroke="#ef4444" stroke-width="3" fill="none"/></svg>`,
+            fork: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 20 85 L 45 45 L 40 40 M 45 45 L 50 15 M 45 45 L 60 20 M 45 45 L 70 28" stroke="#cbd5e1" stroke-width="4" stroke-linecap="round" fill="none"/></svg>`,
+            rag: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 20 30 Q 40 10 70 25 Q 90 50 75 80 Q 40 95 15 70 Z" fill="#78350f" opacity="0.85" stroke="#451a03" stroke-width="3"/><circle cx="40" cy="50" r="8" fill="#1c1917"/></svg>`,
+            apple: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 50 30 Q 30 30 35 60 Q 40 85 50 85 Q 60 85 65 60 Q 70 30 50 30 Z" fill="#b91c1c" stroke="#7f1d1d" stroke-width="3"/><path d="M 35 35 Q 25 50 38 75" fill="#fef2f2"/><path d="M 50 30 Q 55 15 65 10" stroke="#78350f" stroke-width="3" fill="none"/></svg>`,
+            bottle: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 45 15 L 55 15 L 55 30 L 70 45 L 70 85 L 30 85 L 30 55 L 45 35 Z" fill="#15803d" opacity="0.8" stroke="#166534" stroke-width="2"/><path d="M 30 55 L 70 45 L 60 85 Z" fill="#166534"/></svg>`,
+            karambit: `<svg viewBox="0 0 100 80" class="w-16 h-14 object-contain"><path d="M 10 65 Q 20 10 50 15 Q 85 20 90 40 Q 80 45 65 30 Q 40 25 25 55 Z" fill="#f59e0b" stroke="#b45309" stroke-width="2"/><circle cx="20" cy="60" r="6" fill="#1e1b4b" stroke="#f59e0b" stroke-width="2"/></svg>`,
+            awp: `<svg viewBox="0 0 120 60" class="w-16 h-14 object-contain"><path d="M 5 35 L 30 35 L 40 25 L 90 25 L 115 30 L 115 32 L 90 32 L 50 42 L 10 42 Z" fill="#2e1065" stroke="#a855f7" stroke-width="2"/><rect x="45" y="16" width="30" height="6" fill="#f59e0b"/></svg>`,
+            ak47: `<svg viewBox="0 0 120 60" class="w-16 h-14 object-contain"><path d="M 10 30 L 40 30 L 50 20 L 95 20 L 110 25 L 110 27 L 95 27 L 60 40 L 15 40 Z" fill="#065f46" stroke="#10b981" stroke-width="2"/><path d="M 55 30 Q 65 45 50 50" stroke="#f59e0b" stroke-width="4" fill="none"/></svg>`
+        };
+
+        const ITEMS_DATABASE = [
+            { id: 1, name: 'Дырчатый носок', rarity: 'trash', price: 0.15, svgKey: 'sock' },
+            { id: 2, name: 'Гнилой банан', rarity: 'trash', price: 0.20, svgKey: 'banana' },
+            { id: 3, name: 'Рыбий скелет', rarity: 'trash', price: 0.05, svgKey: 'fishbone' },
+            { id: 4, name: 'Старый ботинок', rarity: 'trash', price: 0.30, svgKey: 'shoe' },
+            { id: 5, name: 'Ржавый гвоздь', rarity: 'trash', price: 0.10, svgKey: 'nail' },
+            { id: 6, name: 'Пакет с утилем', rarity: 'trash', price: 0.05, svgKey: 'bag' },
+            { id: 7, name: 'Смятая банка', rarity: 'trash', price: 0.25, svgKey: 'can' },
+            { id: 8, name: 'Гнутая вилка', rarity: 'trash', price: 0.12, svgKey: 'fork' },
+            { id: 9, name: 'Грязная тряпка', rarity: 'trash', price: 0.08, svgKey: 'rag' },
+            { id: 10, name: 'Яблочный огрызок', rarity: 'trash', price: 0.18, svgKey: 'apple' },
+            { id: 11, name: 'Разбитая бутылка', rarity: 'trash', price: 0.15, svgKey: 'bottle' },
+            { id: 99, name: 'Karambit | Lore', rarity: 'legendary', price: 185000, svgKey: 'karambit', legendary: true },
+            { id: 100, name: 'AWP | Dragon Lore', rarity: 'legendary', price: 240000, svgKey: 'awp', legendary: true },
+            { id: 101, name: 'AK-47 | Fire Serpent', rarity: 'legendary', price: 130000, svgKey: 'ak47', legendary: true }
+        ];
+
+        const CASES = {
+            free: { id: 'free', name: 'БЕСПЛАТНЫЙ ХЛАМ', price: 0, items: [1, 2, 3, 5, 6, 99, 100, 101] },
+            bomzh: { id: 'bomzh', name: 'КЕЙС "БОМЖ"', price: 49, items: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] },
+            podezd: { id: 'podezd', name: 'КЕЙС "ПОДЪЕЗД"', price: 149, items: [2, 3, 7, 8, 10, 99] },
+            gold_fake: { id: 'gold_fake', name: 'МЕЧТА "KARAMBIT LORE"', price: 499, items: [1, 5, 99] },
+            oligarh: { id: 'oligarh', name: 'АРСЕНАЛ ОГНЕЙ', price: 999, items: [2, 6, 100, 101] }
+        };
+
+        let state = {
+            balance: 0,
+            inventory: [],
+            currentCase: null,
+            isSpinning: false,
+            pendingWinItem: null,
+            toastTimer: null,
+            selectedTradeItem: null,
+            botOffer: null,
+            clickerCoins: 0,
+            clickerPerClick: 1,
+            clickerTotalClicks: 0,
+            clickerIncome: 0,
+            clickerUpgrades: [
+                { id: 'click_dmg', name: 'Мощный клик', desc: '+1 ₽ за клик', cost: 50, level: 0, maxLevel: 20, baseCost: 50, costMultiplier: 1.5, effect: 'perClick' },
+                { id: 'auto_click', name: 'Автокликер', desc: '+1 ₽/сек', cost: 100, level: 0, maxLevel: 15, baseCost: 100, costMultiplier: 1.7, effect: 'income' },
+                { id: 'lucky_hand', name: 'Удачливая рука', desc: '+2 ₽ за клик', cost: 200, level: 0, maxLevel: 10, baseCost: 200, costMultiplier: 2.0, effect: 'perClick' },
+                { id: 'trash_factory', name: 'Мусорный завод', desc: '+5 ₽/сек', cost: 500, level: 0, maxLevel: 10, baseCost: 500, costMultiplier: 2.2, effect: 'income' }
+            ],
+            clickerInterval: null
+        };
+
+        function playClickSound() {
+            try {
+                const ctx = new(window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(320, ctx.currentTime);
+                gain.gain.setValueAtTime(0.05, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.04);
+            } catch (e) {}
+        }
+
+        function playWinSound() {
+            try {
+                const ctx = new(window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.3);
+            } catch (e) {}
+        }
+
+        function playTradeSound() {
+            try {
+                const ctx = new(window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(440, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.2);
+            } catch (e) {}
+        }
+
+        function showInsufficientToast(caseName, casePrice) {
+            const toast = document.getElementById('insufficientToast');
+            const message = document.getElementById('toastMessage');
+            message.innerHTML = `Недостаточно средств для открытия <b>${caseName}</b>! Нужно <b>${casePrice} ₽</b>, у вас <b>${state.balance} ₽</b>`;
+            toast.style.display = 'flex';
+            if (state.toastTimer) clearTimeout(state.toastTimer);
+            state.toastTimer = setTimeout(() => {
+                toast.style.display = 'none';
+            }, 4000);
+        }
+
+        function showToast(message, isSuccess = false) {
+            const toast = document.getElementById('insufficientToast');
+            const msgEl = document.getElementById('toastMessage');
+            toast.style.borderColor = isSuccess ? '#10b981' : '#ef4444';
+            msgEl.innerHTML = message;
+            toast.style.display = 'flex';
+            if (state.toastTimer) clearTimeout(state.toastTimer);
+            state.toastTimer = setTimeout(() => {
+                toast.style.display = 'none';
+                toast.style.borderColor = '#ef4444';
+            }, 3000);
+        }
+
+        function hideToast() {
+            const toast = document.getElementById('insufficientToast');
+            toast.style.display = 'none';
+            if (state.toastTimer) {
+                clearTimeout(state.toastTimer);
+                state.toastTimer = null;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderShowcase();
+            startLiveTicker();
+            updateUI();
+            renderClickerUI();
+            startClickerIncome();
+        });
+
+        function getItemGraphic(item) {
+            return SVG_ASSETS[item.svgKey] || SVG_ASSETS.nail;
+        }
+
+        function updateUI() {
+            document.getElementById('userBalance').innerText = `${Math.floor(state.balance).toLocaleString('ru-RU')} ₽`;
+            document.getElementById('navInvCount').innerText = state.inventory.length;
+
+            const grid = document.getElementById('inventoryGrid');
+            const totalValue = state.inventory.reduce((sum, item) => sum + item.price, 0);
+            document.getElementById('sellAllPrice').innerText = `(${totalValue.toFixed(2)} ₽)`;
+
+            if (state.inventory.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full py-12 text-center text-gray-500 bg-[#120e1c] rounded-2xl border border-dashed border-[#231b36]">
+                        Ваша личная свалка пуста. Крутите кейсы и копите носки!
+                    </div>
+                `;
+            } else {
+                grid.innerHTML = state.inventory.map((item, index) => `
+                    <div class="bg-[#151124] border rarity-${item.rarity} rounded-xl p-3 flex flex-col items-center text-center space-y-2">
+                        <div class="w-16 h-14 flex items-center justify-center">${getItemGraphic(item)}</div>
+                        <span class="text-xs font-bold text-white truncate w-full">${item.name}</span>
+                        <span class="text-xs font-black text-brand-accentGreen">${item.price} ₽</span>
+                        <button onclick="sellItem(${index})" class="w-full py-1 bg-[#231b38] hover:bg-red-900/50 text-gray-300 text-[10px] font-bold rounded transition-colors">
+                            В утиль
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            if (document.getElementById('tradeModal').classList.contains('hidden') === false) {
+                renderTradeInventory();
+            }
+            renderClickerUI();
+        }
+
+        function renderShowcase() {
+            const showcase = document.getElementById('showcaseGrid');
+            showcase.innerHTML = ITEMS_DATABASE.map(item => `
+                <div class="bg-[#151124] border rarity-${item.rarity} ${item.legendary ? 'rarity-glow-legendary' : ''} rounded-xl p-3 flex flex-col items-center text-center space-y-2">
+                    <div class="w-16 h-14 flex items-center justify-center">${getItemGraphic(item)}</div>
+                    <span class="text-xs font-bold text-white truncate w-full">${item.name}</span>
+                    <span class="text-[9px] font-extrabold uppercase ${item.legendary ? 'text-amber-400' : 'text-gray-400'}">${item.legendary ? 'ПРИМАНКА 0%' : 'ХЛАМ'}</span>
+                </div>
+            `).join('');
+        }
+
+        function startLiveTicker() {
+            const ticker = document.getElementById('liveTicker');
+            const fakeUsers = ['Vaska_Trash', 'Nagibator2008', 'Bomzh_Petya', 'Kolek_CS', 'Banan228', 'SvalkaKing'];
+            setInterval(() => {
+                const user = fakeUsers[Math.floor(Math.random() * fakeUsers.length)];
+                const trashOnly = ITEMS_DATABASE.filter(i => !i.legendary);
+                const item = trashOnly[Math.floor(Math.random() * trashOnly.length)];
+                const card = document.createElement('div');
+                card.className = `inline-flex items-center gap-2 bg-[#151124] border rarity-${item.rarity} rounded-lg px-2.5 py-1 shrink-0`;
+                card.innerHTML = `
+                    <span class="text-[10px] text-gray-400">${user}</span>
+                    <div class="w-6 h-5 flex items-center justify-center">${getItemGraphic(item)}</div>
+                    <span class="text-[10px] font-bold text-white">${item.name}</span>
+                `;
+                ticker.insertBefore(card, ticker.firstChild);
+                if (ticker.children.length > 15) {
+                    ticker.removeChild(ticker.lastChild);
+                }
+            }, 2000);
+        }
+
+        function openCaseModal(caseKey) {
+            const caseData = CASES[caseKey];
+            if (caseData.price > 0 && state.balance < caseData.price) {
+                showInsufficientToast(caseData.name, caseData.price);
+                return;
+            }
+
+            state.currentCase = caseData;
+            document.getElementById('modalCaseTitle').innerText = state.currentCase.name;
+            document.getElementById('modalCasePrice').innerText = `${state.currentCase.price} ₽`;
+
+            const containsGrid = document.getElementById('caseContainsGrid');
+            const availableItems = ITEMS_DATABASE.filter(i => state.currentCase.items.includes(i.id));
+            containsGrid.innerHTML = availableItems.map(item => `
+                <div class="bg-[#0e0a17] border rarity-${item.rarity} rounded-lg px-2.5 py-1.5 flex items-center gap-2">
+                    <div class="w-6 h-6 flex items-center justify-center">${getItemGraphic(item)}</div>
+                    <span class="text-[10px] font-bold text-white">${item.name}</span>
+                </div>
+            `).join('');
+
+            const track = document.getElementById('rouletteTrack');
+            track.style.transition = 'none';
+            track.style.transform = 'translateX(0px)';
+            buildRouletteItems();
+            document.getElementById('caseModal').classList.remove('hidden');
+            hideToast();
+        }
+
+        function closeCaseModal() {
+            if (state.isSpinning) return;
+            document.getElementById('caseModal').classList.add('hidden');
+        }
+
+        function buildRouletteItems() {
+            const track = document.getElementById('rouletteTrack');
+            track.innerHTML = '';
+            const availableItems = ITEMS_DATABASE.filter(i => state.currentCase.items.includes(i.id));
+            for (let i = 0; i < 75; i++) {
+                const item = availableItems[Math.floor(Math.random() * availableItems.length)];
+                const el = document.createElement('div');
+                el.className = `roulette-item rarity-${item.rarity}`;
+                el.innerHTML = `
+                    <span class="text-[8px] font-bold uppercase ${item.legendary ? 'text-amber-400' : 'text-gray-400'}">${item.legendary ? '0% Шанс' : 'Хлам'}</span>
+                    <div class="w-20 h-16 flex items-center justify-center">${getItemGraphic(item)}</div>
+                    <span class="text-[10px] font-bold text-white truncate w-full text-center">${item.name}</span>
+                `;
+                track.appendChild(el);
+            }
+        }
+
+        function startSpin() {
+            if (state.isSpinning) return;
+            if (state.balance < state.currentCase.price) {
+                showInsufficientToast(state.currentCase.name, state.currentCase.price);
+                closeCaseModal();
+                return;
+            }
+
+            state.balance -= state.currentCase.price;
+            updateUI();
+
+            state.isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+            document.getElementById('spinBtn').classList.add('opacity-50');
+
+            const trashOnly = ITEMS_DATABASE.filter(item =>
+                state.currentCase.items.includes(item.id) && !item.legendary
+            );
+            const winningItem = trashOnly[Math.floor(Math.random() * trashOnly.length)];
+            state.pendingWinItem = winningItem;
+
+            const track = document.getElementById('rouletteTrack');
+            const itemWidth = 150;
+            const winningIndex = 60;
+            const itemsNodes = track.children;
+            itemsNodes[winningIndex].className = `roulette-item rarity-${winningItem.rarity}`;
+            itemsNodes[winningIndex].innerHTML = `
+                <span class="text-[8px] font-bold uppercase text-gray-400">Выпал Мусор</span>
+                <div class="w-20 h-16 flex items-center justify-center">${getItemGraphic(winningItem)}</div>
+                <span class="text-[10px] font-bold text-white text-center truncate w-full">${winningItem.name}</span>
+            `;
+
+            const legendaryTease = ITEMS_DATABASE.find(i => i.legendary);
+            if (legendaryTease && itemsNodes[winningIndex + 1]) {
+                itemsNodes[winningIndex + 1].className = `roulette-item rarity-legendary rarity-glow-legendary`;
+                itemsNodes[winningIndex + 1].innerHTML = `
+                    <span class="text-[8px] font-black uppercase text-amber-400">ПРИМАНКА</span>
+                    <div class="w-20 h-16 flex items-center justify-center">${getItemGraphic(legendaryTease)}</div>
+                    <span class="text-[10px] font-black text-amber-400 text-center truncate w-full">${legendaryTease.name}</span>
+                `;
+            }
+
+            const containerWidth = document.querySelector('.roulette-container').offsetWidth;
+            const targetX = (winningIndex * itemWidth) - (containerWidth / 2) + (itemWidth / 2);
+            track.style.transition = 'transform 6.5s cubic-bezier(0.08, 0.82, 0.17, 0.99)';
+            track.style.transform = `translateX(-${targetX}px)`;
+
+            let tickCount = 0;
+            const tickInterval = setInterval(() => {
+                playClickSound();
+                tickCount++;
+                if (tickCount > 26) clearInterval(tickInterval);
+            }, 220);
+
+            setTimeout(() => {
+                state.isSpinning = false;
+                document.getElementById('spinBtn').disabled = false;
+                document.getElementById('spinBtn').classList.remove('opacity-50');
+                playWinSound();
+                showWinModal(winningItem);
+            }, 6600);
+        }
+
+        function showWinModal(item) {
+            document.getElementById('caseModal').classList.add('hidden');
+            document.getElementById('winTitle').innerText = item.name;
+            document.getElementById('winImgContainer').innerHTML = getItemGraphic(item);
+            document.getElementById('winPrice').innerText = `${item.price} ₽`;
+            document.getElementById('winSellPrice').innerText = `${item.price} ₽`;
+            document.getElementById('winModal').classList.remove('hidden');
+            confetti({ particleCount: 25, spread: 50, origin: { y: 0.6 } });
+        }
+
+        function keepCurrentWin() {
+            if (state.pendingWinItem) {
+                state.inventory.push(state.pendingWinItem);
+                state.pendingWinItem = null;
+                updateUI();
+            }
+            document.getElementById('winModal').classList.add('hidden');
+        }
+
+        function sellCurrentWin() {
+            if (state.pendingWinItem) {
+                state.balance += state.pendingWinItem.price;
+                state.pendingWinItem = null;
+                updateUI();
+            }
+            document.getElementById('winModal').classList.add('hidden');
+        }
+
+        function sellItem(index) {
+            state.balance += state.inventory[index].price;
+            state.inventory.splice(index, 1);
+            updateUI();
+        }
+
+        function sellAllInventory() {
+            const total = state.inventory.reduce((sum, item) => sum + item.price, 0);
+            state.balance += total;
+            state.inventory = [];
+            updateUI();
+        }
+
+        function switchTab(tab) {
+            document.getElementById('tab-cases').classList.add('hidden');
+            document.getElementById('tab-inventory').classList.add('hidden');
+            document.getElementById('tab-clicker').classList.add('hidden');
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            hideToast();
+            if (tab === 'clicker') {
+                renderClickerUI();
+            }
+        }
+
+        function scrollToCases() {
+            switchTab('cases');
+            document.getElementById('casesSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function openDepositModal() {
+            document.getElementById('depositModal').classList.remove('hidden');
+            hideToast();
+        }
+
+        function closeDepositModal() {
+            document.getElementById('depositModal').classList.add('hidden');
+        }
+
+        function addBalance(amount) {
+            state.balance += amount;
+            updateUI();
+            closeDepositModal();
+        }
+
+        /* ================ TRADE ================ */
+        function openTradeModal() {
+            if (state.inventory.length === 0) {
+                alert('У тебя нет хлама для обмена! Открой кейсы чтобы получить мусор.');
+                return;
+            }
+            state.selectedTradeItem = null;
+            state.botOffer = null;
+            document.getElementById('tradeModal').classList.remove('hidden');
+            renderTradeInventory();
+            document.getElementById('botOfferList').innerHTML = '';
+            document.getElementById('botEmptyMessage').style.display = 'block';
+            document.getElementById('tradeExecuteBtn').disabled = true;
+        }
+
+        function closeTradeModal() {
+            document.getElementById('tradeModal').classList.add('hidden');
+            state.selectedTradeItem = null;
+            state.botOffer = null;
+        }
+
+        function renderTradeInventory() {
+            const list = document.getElementById('tradeInventoryList');
+            const count = document.getElementById('tradeInventoryCount');
+            const emptyMsg = document.getElementById('tradeEmptyMessage');
+            count.innerText = state.inventory.length;
+            if (state.inventory.length === 0) {
+                list.innerHTML = '';
+                emptyMsg.style.display = 'block';
+                return;
+            }
+            emptyMsg.style.display = 'none';
+            list.innerHTML = state.inventory.map((item, index) => `
+                <div class="trade-offer-item ${state.selectedTradeItem === index ? 'selected' : ''}" onclick="selectTradeItem(${index})">
+                    <div class="w-12 h-12 mx-auto flex items-center justify-center">${getItemGraphic(item)}</div>
+                    <span class="text-[10px] font-bold text-white truncate block mt-1">${item.name}</span>
+                    <span class="text-[8px] text-gray-400">${item.price} ₽</span>
+                </div>
+            `).join('');
+        }
+
+        function selectTradeItem(index) {
+            state.selectedTradeItem = index;
+            const item = state.inventory[index];
+            const trashItems = ITEMS_DATABASE.filter(i => !i.legendary);
+            const randomItem = trashItems[Math.floor(Math.random() * trashItems.length)];
+            const priceMultiplier = 0.5 + Math.random() * 1.5;
+            const botItem = {
+                ...randomItem,
+                price: Math.round(randomItem.price * priceMultiplier * 100) / 100
+            };
+            state.botOffer = botItem;
+
+            const offerList = document.getElementById('botOfferList');
+            const emptyMsg = document.getElementById('botEmptyMessage');
+            emptyMsg.style.display = 'none';
+            offerList.innerHTML = `
+                <div class="trade-offer-item border-emerald-500/50 bg-[#0f1f17]">
+                    <div class="w-12 h-12 mx-auto flex items-center justify-center">${getItemGraphic(botItem)}</div>
+                    <span class="text-[10px] font-bold text-white truncate block mt-1">${botItem.name}</span>
+                    <span class="text-[8px] text-emerald-400">${botItem.price} ₽</span>
+                    <div class="mt-1 text-[8px] text-gray-500">от бота</div>
+                </div>
+            `;
+            document.getElementById('tradeExecuteBtn').disabled = false;
+            renderTradeInventory();
+        }
+
+        function executeTrade() {
+            if (state.selectedTradeItem === null || state.botOffer === null) return;
+            if (state.selectedTradeItem >= state.inventory.length) return;
+            const botItem = state.botOffer;
+            state.inventory.splice(state.selectedTradeItem, 1);
+            state.inventory.push({ ...botItem });
+            playTradeSound();
+            state.selectedTradeItem = null;
+            state.botOffer = null;
+            updateUI();
+            renderTradeInventory();
+            document.getElementById('botOfferList').innerHTML = '';
+            document.getElementById('botEmptyMessage').style.display = 'block';
+            document.getElementById('tradeExecuteBtn').disabled = true;
+            confetti({ particleCount: 15, spread: 30, origin: { y: 0.6 } });
+            showToast(`✅ Обмен успешен! Ты получил <b>${botItem.name}</b> (${botItem.price} ₽)`, true);
+        }
+
+        /* ================ CLICKER ================ */
+        function renderClickerUI() {
+            document.getElementById('clickerCoins').innerText = `${Math.floor(state.clickerCoins).toLocaleString('ru-RU')} ₽`;
+            document.getElementById('clickerPerClick').innerText = state.clickerPerClick;
+            document.getElementById('clickerTotalClicks').innerText = state.clickerTotalClicks;
+            document.getElementById('clickerIncome').innerText = `${Math.floor(state.clickerIncome).toLocaleString('ru-RU')} ₽`;
+
+            const container = document.getElementById('upgradesContainer');
+            container.innerHTML = state.clickerUpgrades.map(upgrade => {
+                const isMaxLevel = upgrade.level >= upgrade.maxLevel;
+                const cost = Math.floor(upgrade.baseCost * Math.pow(upgrade.costMultiplier, upgrade.level));
+                const canAfford = state.clickerCoins >= cost && !isMaxLevel;
+
+                let effectText = '';
+                if (upgrade.effect === 'perClick') {
+                    effectText = `+${upgrade.level * (upgrade.id === 'lucky_hand' ? 2 : 1)} ₽/клик`;
+                } else {
+                    effectText = `+${upgrade.level * (upgrade.id === 'trash_factory' ? 5 : 1)} ₽/сек`;
+                }
+
+                return `
+                    <div class="upgrade-card ${isMaxLevel ? 'unlocked' : (canAfford ? 'unlocked' : '')} ${!canAfford && !isMaxLevel ? 'locked' : ''}" 
+                         onclick="${canAfford ? `buyUpgrade('${upgrade.id}')` : ''}" 
+                         style="${isMaxLevel ? 'border-color: #f59e0b;' : ''}">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-bold text-white">${upgrade.name}</div>
+                                <div class="text-[10px] text-gray-400">${upgrade.desc}</div>
+                                <div class="text-[9px] text-amber-400 mt-1">${effectText}</div>
+                            </div>
+                            <div class="text-right">
+                                ${isMaxLevel ? 
+                                    `<span class="text-[10px] text-amber-400 font-bold">MAX</span>` :
+                                    `<span class="text-xs font-bold ${canAfford ? 'text-brand-accentGreen' : 'text-red-400'}">${cost} ₽</span>`
+                                }
+                                <div class="text-[9px] text-gray-500">Ур. ${upgrade.level}/${upgrade.maxLevel}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function buyUpgrade(upgradeId) {
+            const upgrade = state.clickerUpgrades.find(u => u.id === upgradeId);
+            if (!upgrade) return;
+            if (upgrade.level >= upgrade.maxLevel) {
+                showToast('Это улучшение уже максимального уровня!', false);
+                return;
+            }
+
+            const cost = Math.floor(upgrade.baseCost * Math.pow(upgrade.costMultiplier, upgrade.level));
+            if (state.clickerCoins < cost) {
+                showToast(`Недостаточно монет! Нужно ${cost} ₽`, false);
+                return;
+            }
+
+            state.clickerCoins -= cost;
+            upgrade.level++;
+
+            let perClickBonus = 0;
+            let incomeBonus = 0;
+            if (upgrade.effect === 'perClick') {
+                perClickBonus = upgrade.id === 'lucky_hand' ? 2 : 1;
+            } else {
+                incomeBonus = upgrade.id === 'trash_factory' ? 5 : 1;
+            }
+
+            if (perClickBonus > 0) {
+                state.clickerPerClick += perClickBonus;
+            }
+            if (incomeBonus > 0) {
+                state.clickerIncome += incomeBonus;
+                restartClickerIncome();
+            }
+
+            playClickSound();
+            updateUI();
+            renderClickerUI();
+            showToast(`✅ ${upgrade.name} улучшен до ${upgrade.level} уровня!`, true);
+        }
+
+        function startClickerIncome() {
+            if (state.clickerInterval) clearInterval(state.clickerInterval);
+            state.clickerInterval = setInterval(() => {
+                if (state.clickerIncome > 0) {
+                    state.clickerCoins += state.clickerIncome;
+                    // ИСПРАВЛЕНИЕ: добавляем заработанные деньги на основной баланс
+                    state.balance += state.clickerIncome;
+                    updateUI();
+                    if (document.getElementById('tab-clicker').classList.contains('hidden') === false) {
+                        document.getElementById('clickerCoins').innerText = `${Math.floor(state.clickerCoins).toLocaleString('ru-RU')} ₽`;
+                    }
+                }
+            }, 1000);
+        }
+
+        function restartClickerIncome() {
+            if (state.clickerInterval) {
+                clearInterval(state.clickerInterval);
+                startClickerIncome();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const clickerBtn = document.getElementById('clickerButton');
+            clickerBtn.addEventListener('click', (e) => {
+                state.clickerCoins += state.clickerPerClick;
+                state.clickerTotalClicks++;
+                // ИСПРАВЛЕНИЕ: добавляем заработанные деньги на основной баланс
+                state.balance += state.clickerPerClick;
+
+                clickerBtn.classList.add('clicker-pulse');
+                setTimeout(() => {
+                    clickerBtn.classList.remove('clicker-pulse');
+                }, 150);
+
+                const rect = clickerBtn.getBoundingClientRect();
+                const coin = document.createElement('div');
+                coin.className = 'clicker-coin';
+                coin.innerHTML = `<i class="fa-solid fa-coins text-amber-400"></i> +${state.clickerPerClick}`;
+                coin.style.left = `${rect.left + rect.width / 2 - 30}px`;
+                coin.style.top = `${rect.top}px`;
+                document.body.appendChild(coin);
+                setTimeout(() => coin.remove(), 1200);
+
+                document.getElementById('clickerCoins').innerText = `${Math.floor(state.clickerCoins).toLocaleString('ru-RU')} ₽`;
+                document.getElementById('clickerTotalClicks').innerText = state.clickerTotalClicks;
+
+                playClickSound();
+                updateUI();
+                renderClickerUI();
+            });
+        });
+    </script>
+</body>
+</html>

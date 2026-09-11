@@ -53,9 +53,18 @@
         }
     </script>
     <style>
+        html { scroll-behavior: smooth; scroll-padding-top: 88px; }
         :root { --bg: #0d0b14; --card: #161224; --border: #2b2142; }
-        * { scrollbar-width: thin; scrollbar-color: #2d2447 #0d0b14; }
-        body { background: #0d0b14; color: #f3f4f6; font-family: 'Inter', sans-serif; overflow-x: hidden; user-select: none; }
+        * { scrollbar-width: thin; scrollbar-color: #7c3aed #0d0b14; }
+        body { background: #0d0b14; color: #f3f4f6; font-family: 'Inter', sans-serif; overflow-x: hidden; user-select: none; -webkit-font-smoothing: antialiased; overscroll-behavior-y: contain; }
+        /* ultra-smooth scroll */
+        @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+        #scrollProgress { position: fixed; top:0; left:0; height:3px; width:0; background: linear-gradient(90deg, #7c3aed 0%, #a78bfa 30%, #f59e0b 70%, #fbbf24 100%); z-index: 9999; transition: width .08s linear; box-shadow: 0 0 12px rgba(124,58,237,.6); }
+        #toTop { position: fixed; right:18px; bottom:18px; w:44px; h:44px; width:48px; height:48px; border-radius:16px; background: linear-gradient(135deg, #7c3aed, #6d28d9); border:1px solid rgba(255,255,255,.12); color:white; display:grid; place-items:center; box-shadow: 0 12px 30px rgba(124,58,237,.35), 0 0 0 1px rgba(255,255,255,.06); cursor:pointer; z-index:35; opacity:0; transform: translateY(12px) scale(.96); pointer-events:none; transition: .28s cubic-bezier(.2,.8,.2,1); }
+        #toTop.show { opacity:1; transform: translateY(0) scale(1); pointer-events:auto; }
+        #toTop:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 16px 36px rgba(124,58,237,.45); }
+        /* header auto-hide */
+        header.header-hide { transform: translateY(-100%); }
         body::before {
             content:''; position: fixed; inset:0; pointer-events:none; opacity:.35;
             background:
@@ -108,8 +117,15 @@
         .case-card:hover::before { opacity:1; }
         .case-card:hover { transform: translateY(-4px) scale(1.01); border-color: rgba(124,58,237,.5) !important; box-shadow: 0 12px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(124,58,237,.15); }
         .case-card:active { transform: translateY(-1px) scale(.99); }
-        /* scrollbar */
-        ::-webkit-scrollbar { width:6px; height:6px; } ::-webkit-scrollbar-track { background:#0d0b14; } ::-webkit-scrollbar-thumb { background:#2d2447; border-radius:999px; } ::-webkit-scrollbar-thumb:hover { background:#7c3aed; }
+        /* premium scrollbar */
+        ::-webkit-scrollbar { width:8px; height:8px; } ::-webkit-scrollbar-track { background:#0d0b14; } 
+        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #7c3aed, #4c1d95); border-radius:999px; border:2px solid #0d0b14; } 
+        ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #8b5cf6, #f59e0b); }
+        ::-webkit-scrollbar-corner { background:#0d0b14; }
+        /* modal & grid scrollbars finer */
+        .custom-scroll::-webkit-scrollbar { width:6px; height:6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #2d2447; border:1px solid #0d0b14; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #7c3aed; }
         /* toast */
         #toastContainer { position: fixed; top: 78px; left:50%; transform: translateX(-50%); z-index:9999; display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none; width:min(92vw, 520px); }
         .toast { pointer-events:auto; display:flex; align-items:center; gap:12px; padding:12px 18px; border-radius:14px; font-weight:700; font-size:13px; line-height:1.4; box-shadow: 0 10px 40px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.06); backdrop-filter: blur(16px); animation: toastIn .35s cubic-bezier(.2,.8,.2,1); max-width:100%; }
@@ -167,9 +183,21 @@
         @keyframes balancePop { 0% { transform: scale(1)} 50% { transform: scale(1.06)} 100% { transform: scale(1)} }
         /* scrollbar hide */
         .no-scrollbar::-webkit-scrollbar { display:none; } .no-scrollbar { scrollbar-width:none; }
+        /* drag scroll */
+        .drag-scroll { cursor: grab; user-select: none; }
+        .drag-scroll.active { cursor: grabbing; }
+        .drag-scroll:active { cursor: grabbing; }
+        /* icon polish */
+        .icon-3d { filter: drop-shadow(0 8px 16px rgba(0,0,0,.45)) drop-shadow(0 2px 4px rgba(0,0,0,.3)); }
+        .icon-glow-violet { filter: drop-shadow(0 0 14px rgba(124,58,237,.55)); }
+        .icon-glow-amber { filter: drop-shadow(0 0 14px rgba(245,158,11,.55)); }
+        /* smooth section */
+        .section-smooth { scroll-margin-top: 88px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
+    <div id="scrollProgress"></div>
+    <button id="toTop" aria-label="Наверх"><i class="fa-solid fa-chevron-up text-sm"></i></button>
     <div id="toastContainer"></div>
     <div id="insufficientToast" class="hidden"></div>
 
@@ -760,20 +788,20 @@
 
     <script>
         const SVG_ASSETS = {
-            sock: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 30 15 L 60 15 C 65 15 65 25 60 35 L 50 60 C 50 65 55 75 75 75 C 85 75 85 90 70 90 C 40 90 30 75 30 60 Z" fill="#65a30d" stroke="#3f6212" stroke-width="3"/><circle cx="42" cy="30" r="4" fill="#000" opacity="0.3"/><path d="M 30 20 Q 25 15 20 22" stroke="#a3e635" stroke-width="2" fill="none"/><path d="M 65 10 Q 70 5 65 0" stroke="#84cc16" stroke-width="2" fill="none"/><path d="M 75 15 Q 80 10 75 5" stroke="#84cc16" stroke-width="2" fill="none"/></svg>`,
-            banana: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 20 20 Q 80 10 85 70 Q 50 85 15 35 Z" fill="#ca8a04" stroke="#713f12" stroke-width="3"/><path d="M 20 20 Q 50 50 85 70" stroke="#451a03" stroke-width="2" stroke-dasharray="3,3" fill="none"/><circle cx="45" cy="40" r="5" fill="#451a03"/><circle cx="60" cy="55" r="4" fill="#451a03"/><circle cx="30" cy="28" r="3" fill="#451a03"/></svg>`,
-            fishbone: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 10 50 L 85 50 M 25 30 L 25 70 M 40 25 L 40 75 M 55 30 L 55 70 M 70 35 L 70 65" stroke="#e2e8f0" stroke-width="3" stroke-linecap="round"/><polygon points="85,50 98,35 98,65" fill="#cbd5e1"/><circle cx="92" cy="45" r="2" fill="#0f172a"/><polygon points="10,50 0,35 0,65" fill="#cbd5e1"/></svg>`,
-            shoe: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 15 55 Q 25 35 45 40 L 65 45 Q 85 45 90 65 L 85 78 L 10 78 Z" fill="#475569" stroke="#1e293b" stroke-width="3"/><rect x="10" y="73" width="80" height="9" rx="2" fill="#cbd5e1"/><ellipse cx="75" cy="58" rx="6" ry="4" fill="#0f172a"/></svg>`,
-            nail: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 20 25 L 80 20 L 75 30 L 55 32 L 35 85 L 25 82 L 45 32 L 20 25 Z" fill="#b45309" stroke="#78350f" stroke-width="2"/><path d="M 35 85 L 25 82 L 22 92 Z" fill="#451a03"/></svg>`,
-            bag: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 30 35 C 30 20, 45 20, 45 35 L 55 35 C 55 20, 70 20, 70 35 Q 85 45 80 85 Q 75 95 25 95 Q 15 45 30 35 Z" fill="#334155" opacity="0.9" stroke="#0f172a" stroke-width="3"/><circle cx="50" cy="35" r="6" fill="#1e293b"/></svg>`,
-            can: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 30 20 C 30 15, 70 15, 70 20 L 75 40 Q 80 55 65 65 Q 55 75 70 85 C 70 90, 30 90, 30 85 Q 20 60 35 45 Z" fill="#94a3b8" stroke="#334155" stroke-width="3"/><ellipse cx="50" cy="20" rx="20" ry="5" fill="#64748b"/><path d="M 38 40 Q 50 50 62 38" stroke="#ef4444" stroke-width="3" fill="none"/></svg>`,
-            fork: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 20 85 L 45 45 L 40 40 M 45 45 L 50 15 M 45 45 L 60 20 M 45 45 L 70 28" stroke="#cbd5e1" stroke-width="4" stroke-linecap="round" fill="none"/></svg>`,
-            rag: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 20 30 Q 40 10 70 25 Q 90 50 75 80 Q 40 95 15 70 Z" fill="#78350f" opacity="0.85" stroke="#451a03" stroke-width="3"/><circle cx="40" cy="50" r="8" fill="#1c1917"/></svg>`,
-            apple: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 50 30 Q 30 30 35 60 Q 40 85 50 85 Q 60 85 65 60 Q 70 30 50 30 Z" fill="#b91c1c" stroke="#7f1d1d" stroke-width="3"/><path d="M 35 35 Q 25 50 38 75" fill="#fef2f2"/><path d="M 50 30 Q 55 15 65 10" stroke="#78350f" stroke-width="3" fill="none"/></svg>`,
-            bottle: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain"><path d="M 45 15 L 55 15 L 55 30 L 70 45 L 70 85 L 30 85 L 30 55 L 45 35 Z" fill="#15803d" opacity="0.8" stroke="#166534" stroke-width="2"/><path d="M 30 55 L 70 45 L 60 85 Z" fill="#166534"/></svg>`,
-            karambit: `<svg viewBox="0 0 100 80" class="w-16 h-14 object-contain"><path d="M 10 65 Q 20 10 50 15 Q 85 20 90 40 Q 80 45 65 30 Q 40 25 25 55 Z" fill="#f59e0b" stroke="#b45309" stroke-width="2"/><circle cx="20" cy="60" r="6" fill="#1e1b4b" stroke="#f59e0b" stroke-width="2"/></svg>`,
-            awp: `<svg viewBox="0 0 120 60" class="w-16 h-14 object-contain"><path d="M 5 35 L 30 35 L 40 25 L 90 25 L 115 30 L 115 32 L 90 32 L 50 42 L 10 42 Z" fill="#2e1065" stroke="#a855f7" stroke-width="2"/><rect x="45" y="16" width="30" height="6" fill="#f59e0b"/></svg>`,
-            ak47: `<svg viewBox="0 0 120 60" class="w-16 h-14 object-contain"><path d="M 10 30 L 40 30 L 50 20 L 95 20 L 110 25 L 110 27 L 95 27 L 60 40 L 15 40 Z" fill="#065f46" stroke="#10b981" stroke-width="2"/><path d="M 55 30 Q 65 45 50 50" stroke="#f59e0b" stroke-width="4" fill="none"/></svg>`
+            sock: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain icon-3d" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a3e635"/><stop offset="55%" stop-color="#65a30d"/><stop offset="100%" stop-color="#3f6212"/></linearGradient><radialGradient id="sg2" cx="40%" cy="30%" r="70%"><stop offset="0%" stop-color="white" stop-opacity=".28"/><stop offset="100%" stop-color="black" stop-opacity="0"/></radialGradient><filter id="sf1"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".35"/></filter></defs><path d="M 30 15 L 60 15 C 66 15 68 23 62 33 L 52 60 C 52 68 58 76 75 76 C 86 76 87 92 70 92 C 38 92 25 76 30 60 Z" fill="url(#sg1)" stroke="#1a2e05" stroke-width="2.5" filter="url(#sf1)"/><path d="M 30 15 L 60 15 C 66 15 68 23 62 33 L 52 60 C 52 68 58 76 75 76 C 86 76 87 92 70 92 C 38 92 25 76 30 60 Z" fill="url(#sg2)"/><ellipse cx="42" cy="30" rx="4.5" ry="5.5" fill="#0a0a0a" opacity=".45"/><ellipse cx="42" cy="30" rx="1.8" ry="2.2" fill="white" opacity=".35"/><path d="M 32 22 Q 27 17 21 23" stroke="#d9f99d" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".9"/><path d="M 36 78 Q 42 84 48 78" stroke="#1a2e05" stroke-width="1.2" fill="none" opacity=".5"/><g opacity=".9"><path d="M 65 10 Q 70 5 65 0" stroke="#84cc16" stroke-width="1.7" fill="none" stroke-linecap="round"/><path d="M 75 15 Q 80 10 75 5" stroke="#84cc16" stroke-width="1.7" fill="none" stroke-linecap="round"/><circle cx="66" cy="7" r="1.2" fill="#ecfccb"/><circle cx="76" cy="11" r="1" fill="#ecfccb"/></g></svg>`,
+            banana: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain icon-3d" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fde047"/><stop offset="45%" stop-color="#eab308"/><stop offset="100%" stop-color="#a16207"/></linearGradient><linearGradient id="bg2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="white" stop-opacity=".32"/><stop offset="100%" stop-color="white" stop-opacity="0"/></linearGradient><filter id="bf1"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity=".3"/></filter></defs><path d="M 18 22 Q 78 8 86 68 Q 52 88 13 38 Z" fill="url(#bg1)" stroke="#713f12" stroke-width="2.6" filter="url(#bf1)"/><path d="M 18 22 Q 78 8 86 68 Q 52 88 13 38 Z" fill="url(#bg2)"/><path d="M 20 22 Q 50 50 86 68" stroke="#451a03" stroke-width="1.7" stroke-dasharray="3 3.5" fill="none" opacity=".85" stroke-linecap="round"/><ellipse cx="45" cy="40" rx="5.2" ry="5.8" fill="#451a03" opacity=".95"/><ellipse cx="46" cy="38.5" rx="1.6" ry="1.2" fill="white" opacity=".22"/><ellipse cx="60" cy="55" rx="4" ry="4.4" fill="#451a03"/><ellipse cx="30" cy="28" rx="2.8" ry="3.2" fill="#451a03"/><path d="M 15 20 Q 10 16 12 10 Q 16 12 18 18" fill="#422006" stroke="#713f12" stroke-width="1.2"/><path d="M 15 19 Q 13 14 15 11" stroke="#854d0e" stroke-width=".9" fill="none"/></svg>`,
+            fishbone: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain icon-3d" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="fg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f8fafc"/><stop offset="100%" stop-color="#cbd5e1"/></linearGradient><filter id="ff1"><feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-opacity=".25"/></filter></defs><g filter="url(#ff1)" stroke-linecap="round"><path d="M 10 50 L 86 50" stroke="#e2e8f0" stroke-width="3.5"/><path d="M 10 50 L 86 50" stroke="white" stroke-width="1.1" opacity=".6"/><g stroke="#cbd5e1" stroke-width="2.8"><path d="M 24 30 L 24 70"/><path d="M 40 24 L 40 76"/><path d="M 56 29 L 56 71"/><path d="M 71 34 L 71 66"/></g><g stroke="white" stroke-width=".9" opacity=".5"><path d="M 24 30 L 24 70"/><path d="M 40 24 L 40 76"/></g><polygon points="86,50 99,34 99,66" fill="url(#fg1)" stroke="#94a3b8" stroke-width="1.4"/><circle cx="93" cy="45" r="2.3" fill="#0f172a"/><circle cx="93.6" cy="44.2" r=".7" fill="white" opacity=".85"/><polygon points="10,50 -1,34 -1,66" fill="url(#fg1)" stroke="#94a3b8" stroke-width="1.2"/></g></svg>`,
+            shoe: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain icon-3d" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sh1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#64748b"/><stop offset="100%" stop-color="#334155"/></linearGradient><linearGradient id="sh2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#e2e8f0"/><stop offset="100%" stop-color="#94a3b8"/></linearGradient><filter id="shf"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".28"/></filter></defs><g filter="url(#shf)"><path d="M 14 56 Q 24 34 44 39 L 65 44 Q 86 44 91 64 L 86 78 L 9 78 Z" fill="url(#sh1)" stroke="#0f172a" stroke-width="2.2"/><path d="M 14 56 Q 24 34 44 39 L 65 44 Q 86 44 91 64" fill="none" stroke="white" stroke-width="1" opacity=".18"/><rect x="9" y="72.5" width="82" height="9.5" rx="2.2" fill="url(#sh2)" stroke="#475569" stroke-width="1.1"/><g fill="#0f172a"><ellipse cx="76" cy="58" rx="6.5" ry="4.5"/><ellipse cx="76" cy="58" rx="2.2" ry="1.6" fill="white" opacity=".12"/></g><path d="M 32 52 Q 36 46 40 52 T 48 52" stroke="#1e293b" stroke-width="1.3" fill="none" opacity=".6" stroke-linecap="round"/><circle cx="28" cy="68" r="1" fill="#1e293b" opacity=".35"/><circle cx="35" cy="70" r=".9" fill="#1e293b" opacity=".25"/></g></svg>`,
+            nail: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain icon-3d" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ng1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#92400e"/><stop offset="50%" stop-color="#d97706"/><stop offset="100%" stop-color="#78350f"/></linearGradient><filter id="nf1"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".3"/></filter></defs><g filter="url(#nf1)"><path d="M 18 24 L 82 18 L 77 30 L 56 32.5 L 36 87 L 24 84 L 46 32.5 L 18 24 Z" fill="url(#ng1)" stroke="#451a03" stroke-width="1.7"/><path d="M 18 24 L 82 18 L 77 30 L 56 32.5 L 36 87 L 24 84 L 46 32.5 L 18 24 Z" fill="white" opacity=".08"/><path d="M 18 24 L 48 28 L 46 32.5 L 18 24" fill="white" opacity=".18"/><path d="M 36 87 L 24 84 L 21 94 Z" fill="#1c0700"/><circle cx="26" cy="86" r="1.1" fill="#f59e0b" opacity=".6"/></g></svg>`,
+            bag: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain icon-3d" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="bag1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#475569"/><stop offset="100%" stop-color="#1e293b"/></linearGradient><filter id="bagf"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity=".28"/></filter></defs><g filter="url(#bagf)"><path d="M 28 34 C 28 18, 44 18, 44 34 L 56 34 C 56 18, 72 18, 72 34 Q 87 44 82 86 Q 77 96 25 96 Q 13 44 28 34 Z" fill="url(#bag1)" stroke="#020617" stroke-width="1.8"/><path d="M 28 34 C 28 18, 44 18, 44 34 L 56 34 C 56 18, 72 18, 72 34" fill="none" stroke="white" stroke-width="1" opacity=".12"/><ellipse cx="50" cy="34" rx="6.5" ry="6.5" fill="#0f172a" stroke="#020617" stroke-width="1.2"/><ellipse cx="48" cy="32" rx="2" ry="1.4" fill="white" opacity=".18"/><path d="M 32 55 Q 42 62 50 55 Q 60 48 70 56" stroke="white" stroke-width=".9" fill="none" opacity=".12" stroke-linecap="round"/></g></svg>`,
+            can: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain icon-3d" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="cg1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#94a3b8"/><stop offset="50%" stop-color="#cbd5e1"/><stop offset="100%" stop-color="#64748b"/></linearGradient><filter id="cf1"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".25"/></filter></defs><g filter="url(#cf1)"><path d="M 28 18 C 28 13, 72 13, 72 18 L 77 40 Q 82 56 66 66 Q 56 76 71 87 C 71 92, 29 92, 29 87 Q 18 60 34 45 Z" fill="url(#cg1)" stroke="#334155" stroke-width="1.6"/><ellipse cx="50" cy="18" rx="22" ry="5.5" fill="#475569" stroke="#1e293b" stroke-width="1.2"/><ellipse cx="50" cy="18" rx="14" ry="2.8" fill="white" opacity=".14"/><path d="M 37 40 Q 50 52 63 38" stroke="#ef4444" stroke-width="2.6" fill="none" stroke-linecap="round"/><circle cx="41" cy="48" r="1.1" fill="white" opacity=".5"/><path d="M 28 72 Q 40 78 52 72" stroke="#1e293b" stroke-width=".9" fill="none" opacity=".25"/></g></svg>`,
+            fork: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain icon-3d" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="fk1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#e2e8f0"/><stop offset="100%" stop-color="#94a3b8"/></linearGradient><filter id="fkf"><feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-opacity=".2"/></filter></defs><g filter="url(#fkf)" stroke="url(#fk1)" stroke-width="3.6" stroke-linecap="round" fill="none"><path d="M 19 86 L 44 46"/><path d="M 44 46 L 49 14"/><path d="M 44 46 L 59 19"/><path d="M 44 46 L 69 27"/><path d="M 38 41 L 44 46 L 48 42" stroke-width="1.6" stroke="#64748b" opacity=".5"/></g><g fill="#cbd5e1" opacity=".9"><circle cx="49" cy="13" r="1.6"/><circle cx="59" cy="18" r="1.6"/><circle cx="69" cy="26" r="1.6"/></g></svg>`,
+            rag: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain icon-3d" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="rg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#a16207"/><stop offset="100%" stop-color="#451a03"/></linearGradient><filter id="rgf"><feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-opacity=".3"/></filter></defs><g filter="url(#rgf)"><path d="M 18 30 Q 40 8 70 23 Q 92 50 76 81 Q 42 97 14 71 Z" fill="url(#rg1)" stroke="#1c0700" stroke-width="1.6"/><path d="M 18 30 Q 40 8 70 23 Q 92 50 76 81 Q 42 97 14 71 Z" fill="white" opacity=".07"/><path d="M 28 34 Q 38 42 46 34 Q 58 44 66 36" stroke="white" stroke-width=".9" fill="none" opacity=".14" stroke-linecap="round"/><circle cx="40" cy="50" r="8.5" fill="#0a0a0a"/><circle cx="40" cy="50" r="5.5" fill="#1c1917"/><circle cx="38" cy="48" r="1.4" fill="white" opacity=".12"/></g></svg>`,
+            apple: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain icon-3d" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ap1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f87171"/><stop offset="55%" stop-color="#dc2626"/><stop offset="100%" stop-color="#7f1d1d"/></linearGradient><filter id="apf"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".28"/></filter></defs><g filter="url(#apf)"><path d="M 50 29 Q 29 29 34 60 Q 39 86 50 86 Q 61 86 66 60 Q 71 29 50 29 Z" fill="url(#ap1)" stroke="#450a0a" stroke-width="1.7"/><path d="M 34 36 Q 24 50 38 76" fill="white" opacity=".16"/><path d="M 50 29 Q 56 14 66 9" stroke="#78350f" stroke-width="2.8" fill="none" stroke-linecap="round"/><ellipse cx="66" cy="9" rx="3.2" ry="1.8" fill="#14532d"/><ellipse cx="44" cy="66" rx="2.2" ry="1.4" fill="#450a0a" opacity=".5"/><ellipse cx="52" cy="70" rx="1.6" ry="1" fill="#450a0a" opacity=".35"/></g></svg>`,
+            bottle: `<svg viewBox="0 0 100 100" class="w-16 h-14 object-contain icon-3d" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="bt1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#166534"/><stop offset="100%" stop-color="#15803d"/></linearGradient><filter id="btf"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".28"/></filter></defs><g filter="url(#btf)"><path d="M 44 12 L 56 12 L 56 28 L 71 44 L 71 86 L 29 86 L 29 55 L 44 34 Z" fill="url(#bt1)" stroke="#052e16" stroke-width="1.7"/><path d="M 44 12 L 56 12 L 56 28 L 71 44 L 71 86 L 29 86" fill="white" opacity=".08"/><path d="M 29 56 L 71 44 L 61 86" fill="#052e16" opacity=".9"/><path d="M 36 42 L 42 48 M 48 38 L 54 44" stroke="white" stroke-width="1" opacity=".25" stroke-linecap="round"/><polygon points="29,55 22,48 26,62" fill="#bbf7d0" opacity=".85" stroke="#052e16" stroke-width=".8"/></g></svg>`,
+            karambit: `<svg viewBox="0 0 100 80" class="w-16 h-14 object-contain icon-3d" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="kg1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#fbbf24"/><stop offset="50%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#b45309"/></linearGradient><linearGradient id="kg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1e1b4b"/><stop offset="100%" stop-color="#020617"/></linearGradient><filter id="kgf"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity=".35"/></filter></defs><g filter="url(#kgf)"><path d="M 10 66 Q 20 8 51 14 Q 86 19 91 39 Q 81 44 66 30 Q 41 24 25 56 Z" fill="url(#kg1)" stroke="#78350f" stroke-width="1.8"/><path d="M 10 66 Q 20 8 51 14 Q 86 19 91 39 Q 81 44 66 30" fill="white" opacity=".18"/><circle cx="20" cy="61" r="7.5" fill="url(#kg2)" stroke="#f59e0b" stroke-width="1.7"/><circle cx="20" cy="61" r="3" fill="#020617"/><circle cx="19" cy="60" r="1" fill="white" opacity=".3"/></g></svg>`,
+            awp: `<svg viewBox="0 0 120 60" class="w-16 h-14 object-contain icon-3d" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="awg1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#4c1d95"/><stop offset="100%" stop-color="#1e1b4b"/></linearGradient><linearGradient id="awg2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#fbbf24"/></linearGradient><filter id="awf"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".35"/></filter></defs><g filter="url(#awf)"><path d="M 4 35 L 30 35 L 41 24 L 91 24 L 116 29 L 116 33 L 91 33 L 51 43 L 9 43 Z" fill="url(#awg1)" stroke="#a855f7" stroke-width="1.4"/><rect x="45" y="15" width="32" height="7" rx="1.5" fill="url(#awg2)" stroke="#78350f" stroke-width="1"/><circle cx="78" cy="28" r="1.2" fill="#fde68a"/><path d="M 18 36 L 28 36 L 24 40 Z" fill="#f59e0b"/></g></svg>`,
+            ak47: `<svg viewBox="0 0 120 60" class="w-16 h-14 object-contain icon-3d" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="akg1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#14532d"/><stop offset="100%" stop-color="#052e16"/></linearGradient><filter id="akf"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".3"/></filter></defs><g filter="url(#akf)"><path d="M 9 30 L 40 30 L 51 19 L 96 19 L 111 24 L 111 28 L 96 28 L 61 41 L 14 41 Z" fill="url(#akg1)" stroke="#16a34a" stroke-width="1.3"/><path d="M 55 30 Q 66 45 51 51" stroke="#f59e0b" stroke-width="3.8" fill="none" stroke-linecap="round"/><path d="M 55 30 Q 66 45 51 51" stroke="#fbbf24" stroke-width="1.4" fill="none" stroke-linecap="round" opacity=".9"/><rect x="68" y="21" width="14" height="4" rx="1" fill="#1f2937"/><circle cx="104" cy="25" r="1.4" fill="#f59e0b"/></g></svg>`
         };
 
         const ITEMS_DATABASE = [
@@ -1413,6 +1441,114 @@
         window.addEventListener('DOMContentLoaded', ()=>{
             loadState();
             renderShowcase(); renderFreePreview(); startLiveTicker(); updateUI(); renderClickerUI(); startClickerIncome(); updateSoundBtn();
+
+            // ===== ULTRA SMOOTH SCROLL & PROGRESS =====
+            const progress = document.getElementById('scrollProgress');
+            const toTop = document.getElementById('toTop');
+            const header = document.querySelector('header');
+            let lastY = window.scrollY;
+            let ticking = false;
+            function onScroll(){
+                const scrolled = window.scrollY;
+                const max = document.documentElement.scrollHeight - window.innerHeight;
+                const pct = max>0 ? (scrolled / max) * 100 : 0;
+                progress.style.width = pct + '%';
+                if(scrolled > 520) toTop.classList.add('show'); else toTop.classList.remove('show');
+                // header hide on down, show on up
+                if(scrolled > lastY && scrolled > 140) header.style.transform = 'translateY(-4px)'; else header.style.transform = 'translateY(0)';
+                header.style.transition = 'transform .25s ease';
+                lastY = scrolled;
+                // parallax banner
+                const banner = document.querySelector('.banner-gradient');
+                if(banner){
+                    const rect = banner.getBoundingClientRect();
+                    if(rect.top < window.innerHeight && rect.bottom > 0){
+                        const off = (window.scrollY * 0.06);
+                        banner.style.backgroundPosition = `center ${off}px`;
+                        const floatEl = banner.querySelector('.animate-float');
+                        if(floatEl) floatEl.style.transform = `translateY(${off*0.35}px) rotate(-6deg)`;
+                    }
+                }
+                ticking = false;
+            }
+            window.addEventListener('scroll', ()=>{ if(!ticking){ requestAnimationFrame(onScroll); ticking = true; } }, { passive:true });
+            toTop.addEventListener('click', ()=> window.scrollTo({ top:0, behavior:'smooth' }));
+            // smooth wheel (inertia-like)
+            let cur = window.scrollY, target = window.scrollY, wheelTick=false;
+            function smoothWheel(){
+                cur += (target - cur) * 0.14;
+                if(Math.abs(target-cur) < 0.5) cur = target;
+                else requestAnimationFrame(smoothWheel);
+                window.scrollTo(0, cur);
+                if(cur !== target) requestAnimationFrame(smoothWheel);
+            }
+            // enable only for mouse wheel, not touch
+            window.addEventListener('wheel', (e)=>{
+                if(e.ctrlKey) return;
+                if(Math.abs(e.deltaY) < 4) return;
+                // keep native for small deltas, enhance large
+            }, { passive:true });
+
+            // drag-to-scroll for any overflow grid (showcase, inventory)
+            function enableDragScroll(el){
+                if(!el) return;
+                let isDown=false, startX, scrollLeft, startY, moved=false;
+                el.classList.add('drag-scroll','custom-scroll');
+                el.addEventListener('mousedown', (e)=>{
+                    isDown=true; moved=false;
+                    el.classList.add('active');
+                    startX = e.pageX - el.offsetLeft;
+                    startY = e.pageY - el.offsetTop;
+                    scrollLeft = el.scrollLeft;
+                    scrollTop = el.scrollTop;
+                });
+                el.addEventListener('mouseleave', ()=>{ isDown=false; el.classList.remove('active'); });
+                el.addEventListener('mouseup', ()=>{ isDown=false; el.classList.remove('active'); setTimeout(()=> moved=false, 30); });
+                el.addEventListener('mousemove', (e)=>{
+                    if(!isDown) return;
+                    e.preventDefault();
+                    const x = e.pageX - el.offsetLeft;
+                    const walkX = (x - startX) * 1.2;
+                    const y = e.pageY - el.offsetTop;
+                    const walkY = (y - startY);
+                    if(Math.abs(walkX) > 6 || Math.abs(walkY) > 6) moved=true;
+                    if(el.scrollWidth > el.clientWidth) el.scrollLeft = scrollLeft - walkX;
+                });
+                // prevent click when dragged
+                el.addEventListener('click', (e)=>{ if(moved){ e.preventDefault(); e.stopPropagation(); } }, true);
+                // touch
+                let tsX=0, tsL=0;
+                el.addEventListener('touchstart', (e)=>{ tsX = e.touches[0].pageX - el.offsetLeft; tsL = el.scrollLeft; }, {passive:true});
+                el.addEventListener('touchmove', (e)=>{ if(el.scrollWidth <= el.clientWidth) return; const x = e.touches[0].pageX - el.offsetLeft; el.scrollLeft = tsL - (x - tsX); }, {passive:true});
+            }
+            // showcase horizontal drag on mobile (convert grid to scroll)
+            const showcase = document.getElementById('showcaseGrid');
+            const invGrid = document.getElementById('inventoryGrid');
+            // make showcase scrollable horizontally on small screens via wrapper
+            function makeHorizontalOnMobile(){
+                if(window.innerWidth < 1024){
+                    showcase.style.display = 'flex';
+                    showcase.style.overflowX = 'auto';
+                    showcase.style.scrollSnapType = 'x mandatory';
+                    showcase.style.paddingBottom = '8px';
+                    showcase.querySelectorAll(':scope > div').forEach(c=>{ c.style.minWidth='148px'; c.style.scrollSnapAlign='start'; });
+                } else {
+                    showcase.style.display = '';
+                    showcase.style.overflowX = '';
+                    showcase.style.scrollSnapType = '';
+                    showcase.style.paddingBottom = '';
+                    showcase.querySelectorAll(':scope > div').forEach(c=>{ c.style.minWidth=''; c.style.scrollSnapAlign=''; });
+                }
+            }
+            // apply drag
+            enableDragScroll(document.getElementById('caseContainsGrid'));
+            enableDragScroll(document.getElementById('tradeInventoryList'));
+            enableDragScroll(document.getElementById('botOfferList'));
+            // observe showcase re-render
+            const showcaseObs = new MutationObserver(()=>{ makeHorizontalOnMobile(); enableDragScroll(showcase); });
+            showcaseObs.observe(showcase, { childList:true });
+            window.addEventListener('resize', makeHorizontalOnMobile);
+            makeHorizontalOnMobile();
 
             // reveal
             const obs = new IntersectionObserver(es=>{
